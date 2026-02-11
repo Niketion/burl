@@ -1,143 +1,143 @@
-# burl - Client HTTP/HTTPS in Bash
+# burl - HTTP/HTTPS Client in Bash
 
-Client HTTP/HTTPS minimale in Bash puro.
+Minimal HTTP/HTTPS client in pure Bash.
 
-## Sintassi
+## Syntax
 
 ```bash
 burl URL [HEADERS] [METHOD] [DATA]
 ```
 
-| Parametro | Default | Descrizione |
+| Parameter | Default | Description |
 |-----------|---------|-------------|
-| URL | - | URL completo (http:// o https://) |
-| HEADERS | "" | Header personalizzati (separati da newline) |
-| METHOD | GET | GET, POST, PUT, DELETE, ecc. |
-| DATA | "" | Body della richiesta |
+| URL | - | Complete URL (http:// or https://) |
+| HEADERS | "" | Custom headers (separated by newline) |
+| METHOD | GET | GET, POST, PUT, DELETE, etc. |
+| DATA | "" | Request body |
 
 **Output:** headers → stderr, body → stdout
 
-## Esempi base
+## Basic Examples
 
 ### GET
 ```bash
 burl "https://httpbin.org/get" ""
 ```
 
-### POST con JSON
+### POST with JSON
 ```bash
 burl "https://httpbin.org/post" "Content-Type: application/json" "POST" '{"key":"value"}'
 ```
-Invia JSON a endpoint. `Content-Type` specifica formato, `POST` è il metodo, ultimo parametro è il body.
+Sends JSON to endpoint. `Content-Type` specifies format, `POST` is the method, last parameter is the body.
 
-### Header multipli
+### Multiple Headers
 ```bash
 burl "https://api.example.com/data" "Authorization: Bearer xyz123
 Accept: application/json
 X-Custom: header" "GET"
 ```
-Header separati da newline (`\n`). Usato per auth, content negotiation, header custom.
+Headers separated by newline (`\n`). Used for auth, content negotiation, custom headers.
 
 ### PUT
 ```bash
 burl "https://api.example.com/resource/123" "Content-Type: application/json" "PUT" '{"status":"updated"}'
 ```
-Aggiorna risorsa esistente con nuovo stato.
+Updates existing resource with new status.
 
 ### DELETE
 ```bash
 burl "https://api.example.com/resource/123" "Authorization: Bearer xyz123" "DELETE"
 ```
-Richiede auth, cancella risorsa.
+Requires auth, deletes resource.
 
-## Esempi avanzati
+## Advanced Examples
 
-### Redirect automatici
+### Automatic Redirects
 ```bash
 burl "http://httpbin.org/redirect/3" ""
 ```
-Segue automaticamente fino a 5 redirect. Output mostra tutti i passaggi su stderr.
+Automatically follows up to 5 redirects. Output shows all steps on stderr.
 
-### Chunked transfer encoding
+### Chunked Transfer Encoding
 ```bash
 burl "https://httpbin.org/stream/5" "" | jq -r '.id'
 ```
-Decodifica automaticamente chunked encoding. Usa `dd` per lettura byte-accurate dei chunk.
+Automatically decodes chunked encoding. Uses `dd` for byte-accurate chunk reading.
 
-### Pipe a jq
+### Pipe to jq
 ```bash
 burl "https://httpbin.org/get" "" | jq '.headers["User-Agent"]'
 ```
-Body JSON va su stdout, jq parsea direttamente.
+JSON body goes to stdout, jq parses directly.
 
-### Solo body
+### Body Only
 ```bash
 burl "https://httpbin.org/image/png" "" > image.png 2>/dev/null
 ```
-`2>/dev/null` sopprime headers (stderr), salva solo body.
+`2>/dev/null` suppresses headers (stderr), saves only body.
 
-### Solo headers
+### Headers Only
 ```bash
 burl "https://httpbin.org/get" "" >/dev/null
 ```
-`>/dev/null` elimina body, mostra solo headers.
+`>/dev/null` eliminates body, shows only headers.
 
-### Headers e body separati
+### Separate Headers and Body
 ```bash
 burl "https://httpbin.org/get" "" > body.json 2> headers.txt
 ```
-Redirect separati: body in file, headers in altro.
+Separate redirects: body to file, headers to another.
 
-### Conta redirect
+### Count Redirects
 ```bash
 burl "http://httpbin.org/redirect/3" "" 2>&1 | grep -c "HTTP/1.1"
 ```
-`2>&1` merge stderr in stdout, conta response HTTP totali (redirect + finale).
+`2>&1` merges stderr into stdout, counts total HTTP responses (redirects + final).
 
-### Estrai header specifico
+### Extract Specific Header
 ```bash
 burl "https://httpbin.org/get" "" 2>&1 | grep -i "^content-type:"
 ```
-Cerca header case-insensitive nella risposta.
+Searches for case-insensitive header in response.
 
-### Loop su endpoint
+### Loop Over Endpoints
 ```bash
 for i in {1..3}; do 
     burl "https://httpbin.org/get?id=$i" "" | jq -r ".args.id"
 done
 ```
-Itera su query param, estrae valore da ogni risposta JSON.
+Iterates over query params, extracts value from each JSON response.
 
-### Misura tempo
+### Measure Time
 ```bash
 time burl "https://httpbin.org/delay/2" "" >/dev/null
 ```
-Endpoint con delay di 2 secondi, `time` misura durata totale.
+Endpoint with 2-second delay, `time` measures total duration.
 
-### Bearer token auth
+### Bearer Token Auth
 ```bash
 burl "https://httpbin.org/bearer" "Authorization: Bearer test_token" ""
 ```
-Auth con token, endpoint verifica presenza header.
+Auth with token, endpoint verifies header presence.
 
-### Debug completo
+### Full Debug
 ```bash
 burl "https://httpbin.org/post" "Content-Type: application/json" "POST" '{"test":"data"}' 2>&1 | less
 ```
-`2>&1` mostra tutto (headers + body), `less` per navigare output.
+`2>&1` shows everything (headers + body), `less` for navigating output.
 
-## Come funziona
+## How It Works
 
-### Parsing URL
+### URL Parsing
 ```bash
-scheme="${u%%://*}"      # http o https
+scheme="${u%%://*}"      # http or https
 host="${hostport%%:*}"   # hostname
-port="${hostport#*:}"    # porta (80/443 default)
+port="${hostport#*:}"    # port (80/443 default)
 path="/${u#*/}"          # /path/to/resource
 ```
-Parameter expansion bash per split efficiente.
+Bash parameter expansion for efficient splitting.
 
-### Formato HTTP
+### HTTP Format
 ```
 GET /path HTTP/1.1\r\n
 Host: example.com\r\n
@@ -145,30 +145,30 @@ User-Agent: burl/1.0\r\n
 Connection: close\r\n
 \r\n
 ```
-CRLF (`\r\n`) obbligatorio per RFC 7230. Usato `printf`, non `echo`.
+CRLF (`\r\n`) required by RFC 7230. Uses `printf`, not `echo`.
 
 ### TLS
 ```bash
 openssl s_client -quiet -connect "$host:$port" -servername "$host"
 ```
-`-servername` attiva SNI per virtual hosting HTTPS.
+`-servername` enables SNI for HTTPS virtual hosting.
 
-### Chunked decoding
+### Chunked Decoding
 ```
 size_hex\r\n
 data[size]\r\n
 0\r\n
 ```
-Legge size hex, converte in decimale (`$((16#$size))`), usa `dd bs=1 count=$size` per leggere esattamente N bytes (preserva newline interni).
+Reads hex size, converts to decimal (`$((16#$size))`), uses `dd bs=1 count=$size` to read exactly N bytes (preserves internal newlines).
 
-### Redirect
-Detecta 3xx status code, estrae Location header, converte path relativi in assoluti (`$scheme://$host$location`), max 5 iterazioni.
+### Redirects
+Detects 3xx status code, extracts Location header, converts relative paths to absolute (`$scheme://$host$location`), max 5 iterations.
 
-## Limitazioni
+## Limitations
 
-**Non supportato:**
+**Not Supported:**
 - HTTP/2, HTTP/3
-- Compressione (gzip, deflate, brotli)
+- Compression (gzip, deflate, brotli)
 - Keep-alive / connection reuse
 - Cookie storage
 - Auth schemes (Basic, Digest, OAuth)
@@ -177,9 +177,9 @@ Detecta 3xx status code, estrae Location header, converte path relativi in assol
 - Multipart/form-data
 - WebSocket
 
-**Production:** usa `curl` o `wget`.
+**Production:** use `curl` or `wget`.
 
-## Riferimenti
+## References
 
 - [RFC 9110 - HTTP Semantics](https://datatracker.ietf.org/doc/html/rfc9110)
 - [RFC 7230 - HTTP/1.1 Syntax](https://datatracker.ietf.org/doc/html/rfc7230)
